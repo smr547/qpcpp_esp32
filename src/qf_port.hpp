@@ -148,6 +148,10 @@ namespace QP {
 enum FreeRTOS_TaskAttrs {
     TASK_NAME_ATTR
 };
+    void ESP32_tickHookInit(
+       	uint_fast8_t tickRate = 0U,
+        UBaseType_t  tickTaskPrio = (configMAX_PRIORITIES - 2U)
+    );
 } // namespace QP
 
 /*****************************************************************************
