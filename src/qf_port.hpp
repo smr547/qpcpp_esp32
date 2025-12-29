@@ -40,9 +40,36 @@
 #ifndef QF_PORT_HPP
 #define QF_PORT_HPP
 
-// Select the CPU at which the QP Framework will be attached
-#define CONFIG_QP_PINNED_TO_CORE_0
-//#define CONFIG_QP_PINNED_TO_CORE_1
+//============================================================================
+// QP CPU/core selection (ESP32 dual-core)
+//
+// PRO_CPU_NUM / APP_CPU_NUM are provided by ESP-IDF / Arduino-ESP32 (0/1).
+//
+// Precedence:
+//   1) QP_CPU_NUM (explicit override, e.g. -D QP_CPU_NUM=APP_CPU_NUM)
+//   2) CONFIG_QP_PINNED_TO_CORE_0 / _1 (back-compat)
+//   3) default: APP_CPU_NUM (core 1)
+//============================================================================
+
+#include "soc/soc.h"
+
+#if defined(CONFIG_QP_PINNED_TO_CORE_0) && defined(CONFIG_QP_PINNED_TO_CORE_1)
+    #error "Define only one of CONFIG_QP_PINNED_TO_CORE_0 or CONFIG_QP_PINNED_TO_CORE_1"
+#endif
+
+#ifndef QP_CPU_NUM
+    #if defined(CONFIG_QP_PINNED_TO_CORE_0)
+        #define QP_CPU_NUM PRO_CPU_NUM
+    #elif defined(CONFIG_QP_PINNED_TO_CORE_1)
+        #define QP_CPU_NUM APP_CPU_NUM
+    #else
+        #define QP_CPU_NUM APP_CPU_NUM
+    #endif
+#endif
+
+#if (QP_CPU_NUM != PRO_CPU_NUM) && (QP_CPU_NUM != APP_CPU_NUM)
+    #error "QP_CPU_NUM must be PRO_CPU_NUM or APP_CPU_NUM"
+#endif
 
 // Activate the QF ISR API required for FreeRTOS
 #define QF_ISR_API            1
@@ -74,14 +101,6 @@
 /* global spinlock "mutex" for all critical sections in QF (see NOTE3) */
 extern PRIVILEGED_DATA portMUX_TYPE QF_esp32mux;
 
-#if defined( CONFIG_QP_PINNED_TO_CORE_0 )
-    #define QP_CPU_NUM         PRO_CPU_NUM
-#elif defined( CONFIG_QP_PINNED_TO_CORE_1 )
-    #define QP_CPU_NUM         APP_CPU_NUM
-#else
-    /* Defaults to APP_CPU */
-    #define QP_CPU_NUM         APP_CPU_NUM
-#endif
 
 /* the "FromISR" versions of the QF APIs, see NOTE4 */
 #ifdef Q_SPY
